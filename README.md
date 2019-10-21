@@ -17,10 +17,10 @@ URL = {
         https://doi.org/10.1177/1729881418785073
     
 }
-   
    link: https://journals.sagepub.com/doi/10.1177/1729881418785073#
 2. Comparative Performance Analysis Between Agent-Based And Conventional Diaster Management System
-     cite: @INPROCEEDINGS{8538363, 
+     
+cite: @INPROCEEDINGS{8538363, 
 author={T. {Samaad} and G. A. {Tahir} and {Mansoor-ur-Rahman} and M. {Ashraf}}, 
 booktitle={2018 International Conference on Smart Computing and Electronic Enterprise (ICSCEE)}, 
 title={Comparative Performance Analysis Between Agent-Based And Conventional Diaster Management System}, 
