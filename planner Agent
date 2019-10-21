@@ -1,0 +1,139 @@
+package Agents;
+
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
+import jade.core.AID;
+import jade.core.Agent;
+import jade.core.behaviours.CyclicBehaviour;
+import jade.core.behaviours.OneShotBehaviour;
+import jade.core.behaviours.TickerBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.lang.acl.ACLMessage;
+
+
+
+public class Planner_Agent extends Agent {
+	Gson gson;
+	Shortest_distance c = new Shortest_distance();
+	ArrayList<Double> Longitude = new ArrayList<Double>(); 
+	ArrayList<Double> Latitude =  new ArrayList<Double>();
+	ArrayList<Double> Altitude =  new ArrayList<Double>();
+	ArrayList<String> IDs =  new ArrayList<String>();
+	ArrayList<String> CurrentStatus =  new ArrayList<String>();
+	Finding_shortest_path shortest_path = new Finding_shortest_path();
+	//priority_calculation priority = new priority_calculation();
+	@Override
+	protected void setup() {
+        gson  = new GsonBuilder().serializeNulls().create();
+        System.out.println("Agent Name: " + getName());
+		DFAgentDescription dfd = new DFAgentDescription();
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType("Planner_agent");
+		sd.setName("Planner_agent");
+		sd.setOwnership("NUST");
+		dfd.setName(getAID());
+		dfd.addServices(sd);
+		try {
+			DFService.register(this, dfd);
+		} catch (FIPAException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		addBehaviour(new CyclicBehaviour(this) {
+			
+			@Override
+			public void action() {
+				// TODO Auto-generated method stub
+				 ACLMessage reply =receive();
+				 if(reply!=null){
+					 if(reply.getSender().getName().equals("Monitoring_agent@foo-platform"))
+					 {
+					if(reply.getPerformative() == ACLMessage.INFORM){
+						String msg1= reply.getContent();
+						System.out.println("i got message"+msg1);
+						if(msg1.equals("DisasterState")){
+						ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
+						 SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+					     Date date= new Date();
+					 
+					    String Data_date = dateFormat.format(date);
+						msg.setContent(Data_date);
+						msg.addReceiver(new AID("Database_agent",AID.ISLOCALNAME));
+						send(msg);
+						}
+						
+							else{
+								block();
+						}
+							
+						}
+						
+					}
+					 else{
+							if(reply.getSender().getName().equals("Database_agent@foo-platform")){
+							if(reply.getPerformative() == ACLMessage.INFORM){
+								System.out.println("i got message from database agent");
+								
+								ArrayList<Data> victims_data = (ArrayList<Data>) gson.fromJson(reply.getContent().toString(),
+			                    new TypeToken<ArrayList<Data>>() {
+				                    }.getType());
+								Longitude.clear();
+								Latitude.clear();
+								for (int i = 0; i<victims_data.size();i++ ){
+									 String ID = ""+victims_data.get(i).getId();
+									 IDs.add(ID);
+									 Double Alt = Double.parseDouble(victims_data.get(i).getAlititude());
+									 Altitude.add(Alt);
+									 String curr_status= victims_data.get(i).getCurrent_status();
+									 CurrentStatus.add(curr_status);
+									 double longitude = Double.parseDouble(victims_data.get(i).getLongitude());
+									 double latitude = Double.parseDouble(victims_data.get(i).getLatitude());
+									 Longitude.add(longitude);
+									 Latitude.add(latitude);
+									
+									
+									 
+								}
+								 boolean one_time = true;
+								 if(one_time){
+                                 // c.shortest_distance(IDs,Longitude,Latitude,Altitude);
+								 //shortest_path.init();
+                                  one_time = false;
+								 }
+							}
+				 
+							}
+					 }
+				 }
+			}
+		});
+	
+
+		
+	}
+	public ArrayList<String> current_status (ArrayList<String> clusters_ID){
+		
+		ArrayList<String> cluster_crrent_status = new ArrayList<String>();
+		for(int i=0; i<=clusters_ID.size(); i++){
+			if(IDs.contains(clusters_ID.get(i))){
+				int index =IDs.indexOf(clusters_ID.get(i));
+				String cluster_curr_status = CurrentStatus.get(index);
+				cluster_crrent_status.add(cluster_curr_status);
+			}
+			
+		}
+		return cluster_crrent_status;
+	}
+	
+}
