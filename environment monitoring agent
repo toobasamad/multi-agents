@@ -1,0 +1,99 @@
+package Agents;
+
+import java.util.Iterator;
+import java.util.Scanner;
+
+import jade.core.AID;
+import jade.core.Agent;
+import jade.core.behaviours.Behaviour;
+import jade.core.behaviours.CyclicBehaviour;
+import jade.core.behaviours.OneShotBehaviour;
+import jade.core.behaviours.TickerBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.lang.acl.ACLMessage;
+import jade.wrapper.AgentContainer;
+import jade.wrapper.AgentController;
+import jade.wrapper.StaleProxyException;
+
+public class EnvironmentMonitoring_Agent extends Agent {
+public static Boolean DisasterState;
+	@Override
+	protected void setup() {
+		System.out.println("Agent Name: " + getName());
+		DFAgentDescription dfd = new DFAgentDescription();
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType("Monitoring_agent");
+		sd.setName("Monitoring_agent");
+		sd.setOwnership("NUST");
+		dfd.setName(getAID());
+		dfd.addServices(sd);
+		try {
+			DFService.register(this, dfd);
+		} catch (FIPAException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		AgentContainer a = getContainerController();
+		Object [] args = new Object[2];
+		args[0] = "";
+	    args[1] = "";
+	    
+		System.out.println("Enter disaster state");
+		Scanner userInputScanner = new Scanner(System.in);
+		DisasterState = userInputScanner.nextBoolean();
+		System.out.println("Enter no. of available quadcopters");
+		Scanner available_quadcopters = new Scanner(System.in);
+		int available_quadcopter = available_quadcopters.nextInt();
+		System.out.println("Enter Magnitude");
+		Scanner magnitude = new Scanner(System.in);
+		Double mag = magnitude.nextDouble();
+		
+	addBehaviour(new TickerBehaviour(this,5000) {
+		
+		@Override
+		protected void onTick() {
+			// TODO Auto-generated method stub
+			
+			if(DisasterState){
+				System.out.println("Send Message to planner agent");
+				ACLMessage planner_msg = new ACLMessage(ACLMessage.INFORM);
+				planner_msg.setContent("DisasterState");
+				planner_msg.addReceiver(new AID("Planner_agent",AID.ISLOCALNAME));
+				send(planner_msg);
+				
+							 
+			}
+			else{
+				//Do nothing wait for disaster to occur
+			}
+		}
+	});
+	if(DisasterState){
+		addBehaviour(new OneShotBehaviour() {
+			
+			@Override
+			public void action() {
+				// TODO Auto-generated method stub
+				try {
+					AgentController Quadcopter_management_agent = a.createNewAgent("Quadcopter_management_agent", "Agents.Quadcopter_management_agent", args );
+					Quadcopter_management_agent.start();
+				} catch (StaleProxyException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				ACLMessage Quadcopter_initiation_msg = new ACLMessage(ACLMessage.INFORM);
+				Quadcopter_initiation_msg.setContent(""+mag+","+available_quadcopter);
+				Quadcopter_initiation_msg.addReceiver(new AID("Quadcopter_management_agent",AID.ISLOCALNAME));
+				send(Quadcopter_initiation_msg);
+			}
+		});
+	}
+}
+
+	
+}
+
