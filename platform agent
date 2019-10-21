@@ -1,0 +1,30 @@
+package Agents;
+
+import jade.core.Agent;
+import jade.wrapper.AgentContainer;
+import jade.wrapper.AgentController;
+
+public class Platform_Agent extends Agent {
+	@Override
+	protected void setup() {
+		AgentContainer a = getContainerController();
+		Object [] args = new Object[2];
+		args[0] = "";
+	    args[1] = "";
+	    try{
+	    	AgentController PlannerAgent = a.createNewAgent("Planner_agent", "Agents.Planner_Agent", args );
+	    	AgentController MonitoringAgent = a.createNewAgent("Monitoring_agent", "Agents.EnvironmentMonitoring_Agent", args );
+	    	AgentController DatabaseAgent = a.createNewAgent("Database_agent", "Agents.Database_Agent", args );
+	    	
+	    	PlannerAgent.start();
+	    	MonitoringAgent.start();
+	    	DatabaseAgent.start();
+	    	
+			}
+			 catch(Exception e){
+	               System.out.print(e);
+			    }
+		
+	}
+
+}
