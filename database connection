@@ -1,0 +1,57 @@
+
+package Agents;
+
+import java.sql.*;
+
+public class DBConnection {
+   static Boolean is_connected;
+    private static Connection connection;
+
+    /**
+     * This function is used for making connection to the database
+     *
+     */
+    public static Connection connect() {
+        try {
+            Class.forName("com.mysql.jdbc.Driver").newInstance();
+            connection = DriverManager.getConnection("jdbc:mysql://localhost/locations", "root", "");
+            is_connected= true;
+        } catch (InstantiationException ex) {
+            System.out.println("sql " + ex.getMessage());
+        } catch (IllegalAccessException ex) {
+            System.out.println("sql " + ex.getMessage());
+        } catch (SQLException ex) {
+            System.out.println("sql " + ex.getMessage());
+        } catch (ClassNotFoundException ex) {
+            System.out.println("class not found" + ex.getMessage());
+
+        }
+        return connection;
+    }
+
+    /**
+     * This method is used to close the connection with the database if connection is already open
+     */
+    public static void close() {
+        if (connection != null) {
+            try {
+                connection.close();
+            } catch (SQLException ex) {
+            }
+            connection = null;
+        }
+
+    }
+
+    /**
+     * Returns the Connection object
+     *
+     * @return A Database Connection object
+     */
+    public static Connection getConnection() {
+        return connection;
+    }
+
+
+
+}
