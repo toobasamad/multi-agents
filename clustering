@@ -1,0 +1,217 @@
+public class Clustering  extends JPanel {
+	double[][] distances;
+	String[] names;
+	public void data(String[] ID , double[][] distance_matrix){
+	 names = ID;
+	 distances = distance_matrix;
+	}
+	   /**********************************************************************/
+	String branch = "";
+
+    public void setCluster(Cluster cluster) {
+        branch = cluster.getName() + ":";
+        System.err.println(branch);
+    }
+
+    public String addNode(String branchNode) {
+        branch = branch + branchNode + ":";
+        return branch;
+    }
+    
+    public void deleteTxtFile() {
+        try {
+
+            File file = new File("C:\\Users\\Tooba Samad\\Desktop\\Clusters.txt");
+            if (file.exists()) {
+                if (file.delete()) {
+                    System.out.println(file.getName() + " is deleted!!!!!!!!");
+                } else {
+                    System.out.println("Delete operation is failed........");
+                }
+            } else {
+                System.out.println("File does not exist......");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void readTextFileSave() {
+        try {
+            FileInputStream fstream = new FileInputStream("C:\\Clusters.txt");
+            DataInputStream in = new DataInputStream(fstream);
+            BufferedReader br = new BufferedReader(new InputStreamReader(in));
+            String strLine;
+            String token;
+            String parent = "-";
+            String child = "-";
+            String document, cluster;
+            while ((strLine = br.readLine()) != null) {
+                // Print the content on the console
+                // System.out.println(strLine);
+                StringTokenizer stringTokenizer = new StringTokenizer(strLine, ":");
+                String level = "";
+                while (stringTokenizer.hasMoreElements()) {
+                    token = stringTokenizer.nextElement().toString();
+
+                    if (token.contains("txt")) {
+                        document = token;
+                        cluster = child;
+                        System.out.println("documentTable (" + cluster + ", " + document + ")");
+                        parent = "-";
+                        child = "-";
+                    } else {
+                        StringTokenizer tokenizer = new StringTokenizer(token, "/");
+                        token = tokenizer.nextElement().toString();
+                        level = tokenizer.nextElement().toString();
+                        parent = child;
+                        child = token;
+                        System.out.println("clusterTable (" + parent + ", " + child +")");
+                    }
+                }
+            }
+            in.close();
+        } catch (FileNotFoundException ex) {
+            System.err.println("Error: " + ex.getMessage());
+            Logger.getLogger(Test.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            System.err.println("Error: " + ex.getMessage());
+            Logger.getLogger(Test.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+    }
+    
+    public String addNode(String branchNode, int level) {
+        branch = branch + branchNode + ":";
+        return branch;
+    }
+
+    public String addIdNode(String branchNode) {
+        branch = branch + branchNode;
+        return branch;
+    }
+
+    public String removeIdNode(String id) {
+        branch = branch.substring(0, branch.length() - id.length());
+        return branch;
+    }
+    
+    public void writeInTxtFile(String branch) {
+        BufferedWriter out = null;
+        try {
+            FileWriter fstream = new FileWriter("C:\\Users\\Tooba Samad\\Desktop\\Clusters.txt", true); //true tells to append data.
+            out = new BufferedWriter(fstream);
+            out.write(branch + "\n");
+        } catch (IOException e) {
+            System.err.println("Error: " + e.getMessage());
+        } finally {
+            if (out != null) {
+                try {
+                    out.close();
+                } catch (IOException ex) {
+                    Logger.getLogger(Cluster.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        }
+    }
+    public String removeClstrNode(String clster) {
+//        level = level + 1;
+//        String l = "" + level;
+//        String n = "";
+//
+//        StringTokenizer stringTokenizer = new StringTokenizer(clster, "#");
+//
+//        while (stringTokenizer.hasMoreElements()) {
+//            stringTokenizer.nextElement().toString();
+//            n = stringTokenizer.nextElement().toString();
+//        }
+
+//        if (branch.length() > clster.length() + 3 + l.length()) {
+            branch = branch.substring(0, branch.length() - (clster.length() + 1));
+            return branch;
+//        } else {
+//            branch = branch.substring(0, branch.length() - (clster.length() + 1 + l.length()));
+//            return branch;
+//        }
+    }
+    public void getClustersAndWriteInTextFile(Cluster cluster) {
+        String clster = "";
+        for (int a = 0; a < cluster.getChildren().size(); a++) {
+            clster = cluster.getChildren().get(a).getName();
+            if (clster.contains("clstr")) {
+                addNode(clster);
+//                System.err.println(branch);
+                System.err.println(branch);
+                getClustersAndWriteInTextFile(cluster.getChildren().get(a));
+            } else {
+                addIdNode(clster);
+//                System.err.println(branch);
+                System.err.println(branch);
+                writeInTxtFile(branch);
+                removeIdNode(clster);
+            }
+        }
+        removeClstrNode(cluster.getName());
+        System.err.println(branch);
+    }
+
+    /**********************************************************************/
+    
+	public void visualization (){
+	DendrogramPanel dp = new DendrogramPanel();
+	ClusteringAlgorithm alg = new DefaultClusteringAlgorithm();
+	deleteTxtFile();
+    Cluster cluster = alg.performClustering(distances, names, new CompleteLinkageStrategy());
+    setCluster(cluster);
+    getClustersAndWriteInTextFile(cluster);
+    
+    
+    
+    
+    	
+    List<Cluster> child = cluster.getChildren();
+   
+    dp.setModel(cluster);
+    dp.setBackground(Color.WHITE);
+    dp.setLineColor(Color.BLACK);
+    dp.setScaleValueDecimals(0);
+    dp.setScaleValueInterval(1);
+    dp.setShowDistances(false);
+	 JFrame frame = new JFrame();
+     frame.setSize(400, 300);
+     frame.setLocation(400, 300);
+     frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+     JPanel content = new JPanel();
+     frame.setContentPane(content);
+     content.setBackground(Color.red);
+     content.setLayout(new BorderLayout());
+     content.add(dp, BorderLayout.CENTER);
+     
+
+     
+     frame.setVisible(true);
+	}
+
+public void cluster_elements(List<Cluster> children){
+	//List<Cluster> child = children.getChildren();
+	
+    for (int i=0;i<children.size();i++){
+    	//System.out.println("cluster"+i+"=");
+    	
+    		
+    	if(children.get(i).isLeaf()){
+    		//System.out.println(children.get(i).getName());
+    		Distance x= children.get(i).getDistance();
+    		//System.out.println(x);
+    	}
+    	
+    	else{
+    		cluster_elements(children.get(i).getChildren());
+    		Distance x= children.get(i).getDistance();
+    	    //System.out.println(x);
+    	}    
+}
+}
+}
