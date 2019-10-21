@@ -1,0 +1,177 @@
+package Agents;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+
+
+
+
+
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+
+import com.google.gson.Gson;
+
+import jade.core.Agent;
+import jade.core.behaviours.CyclicBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.lang.acl.ACLMessage;
+
+public class Database_Agent extends Agent {
+	Connection con = DBConnection.connect();
+	ArrayList<Data> data = new ArrayList<Data>();
+	ArrayList<History> his = new ArrayList<History>();
+	String Data_date;
+	@Override
+	protected void setup() {
+		System.out.println("Agent Name: " + getName());
+		DFAgentDescription dfd = new DFAgentDescription();
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType("Database_agent");
+		sd.setName("Database_agent");
+		sd.setOwnership("NUST");
+		dfd.setName(getAID());
+		dfd.addServices(sd);
+		try {
+			DFService.register(this, dfd);
+		} catch (FIPAException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+     	addBehaviour(new CyclicBehaviour(this) {
+			
+			@Override
+			public void action() {
+				// TODO Auto-generated method stub
+				ACLMessage msg =receive();
+				if(msg!= null){
+				 if(msg.getPerformative() == ACLMessage.REQUEST){
+				 if(msg.getSender().getName().equals("Planner_agent@foo-platform"))
+			    {
+				    ArrayList<Data> victims_data = new ArrayList<Data>();
+				    Data_date = msg.getContent();
+				    victims_data =get_victims_data(Data_date);
+					ACLMessage reply = msg.createReply();
+					
+					reply.setPerformative(ACLMessage.INFORM);
+					String Victim_info = new Gson().toJson(victims_data);
+				    reply.setContent(Victim_info);
+					
+					myAgent.send(reply);
+					}
+					}
+					if(msg.getSender().getName().equals("Quadcopter_management_agent@foo-platform")&& msg.getPerformative() == ACLMessage.REQUEST)
+					    {
+							 ArrayList<History> disaster_his = new ArrayList<History>();
+							 Double mag = Double.parseDouble(msg.getContent());
+							 disaster_his = get_history_data(mag);
+							 ACLMessage reply = msg.createReply();
+								
+								reply.setPerformative(ACLMessage.INFORM);
+								String his_info = new Gson().toJson(disaster_his);
+							    reply.setContent(his_info);
+								
+								myAgent.send(reply);
+					    }
+						else{
+					ACLMessage reply = msg.createReply();
+					reply.setPerformative(ACLMessage.REFUSE);
+					reply.setContent("not-available");
+					myAgent.send(reply);
+					System.out.println("Message sent");
+					}
+					
+				}
+				else{
+					block();
+				}
+
+				
+			}
+		});
+     	
+	}
+	public ArrayList<Data> get_victims_data(String Data_date) {
+		if(DBConnection.is_connected){
+			String query = "SELECT * FROM victims_locations";//+" WHERE Date BETWEEN "+"'"+Data_date+" 00:00:00' AND "+"'"+Data_date+" 23:59:59'";
+			
+			try {
+				data.clear();
+				Statement st = con.createStatement();
+				ResultSet rs = st.executeQuery(query);
+				 while (rs.next())
+			      {
+					 Data d= new Data();
+					
+			         d.setId( rs.getInt("ID"));
+			         d.setMagnitude(rs.getDouble("Earthquake_Magnitude"));
+			         d.setQuadcopterID(rs.getString("QuadcopterID"));
+			         d.setCurrent_status(rs.getString("current_status"));
+			         d.setLongitude(rs.getString("Longitude"));
+			         d.setLatitude(rs.getString("Latitude"));
+			         d.setAlititude(rs.getString("Alititude"));
+			         d.setDateandTime(rs.getString("Date"));
+			         
+			        data.add(d);
+			      }
+				
+
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				System.err.println("Got an exception! ");
+			    System.err.println(e.getMessage());
+			}
+			System.out.println("Connection ok");	
+
+		}
+		return data;
+		
+	}
+	
+	
+	
+		
+public ArrayList<History> get_history_data(Double Magnitude) {
+	if(DBConnection.is_connected){
+		String query = "SELECT * FROM disaster_history WHERE Magnitude ="+Magnitude;//+" WHERE Date BETWEEN "+"'"+Data_date+" 00:00:00' AND "+"'"+Data_date+" 23:59:59'";
+		
+		try {
+			his.clear();
+			Statement st = con.createStatement();
+			ResultSet rs = st.executeQuery(query);
+			 while (rs.next())
+		      {
+				 History history= new History();
+				
+		        history.setDate(rs.getString("Date"));
+		        history.setMagnitude(rs.getDouble("Magnitude"));
+		        history.setQuadcopter_no(rs.getInt("Quadcopter_sent"));
+		        history.setTotal_quadcopter_sent(rs.getInt("Total_Quadcopter"));
+		       
+		        
+		      his.add(history);
+		      }
+			
+
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			System.err.println("Got an exception! ");
+		    System.err.println(e.getMessage());
+		}
+		System.out.println("Connection ok");	
+
+	}
+	return his;
+	
+}
+
+
+}	
+	
+
