@@ -1,0 +1,35 @@
+package Agents;
+
+import java.util.Date;
+
+public class History {
+	
+int Quadcopter_no, total_quadcopter_sent;
+
+String date;
+Double Magnitude;
+public int getTotal_quadcopter_sent() {
+	return total_quadcopter_sent;
+}
+public void setTotal_quadcopter_sent(int total_quadcopter_sent) {
+	this.total_quadcopter_sent = total_quadcopter_sent;
+}
+public int getQuadcopter_no() {
+	return Quadcopter_no;
+}
+public void setQuadcopter_no(int quadcopter_no) {
+	Quadcopter_no = quadcopter_no;
+}
+public String getDate() {
+	return date;
+}
+public void setDate(String date) {
+	this.date = date;
+}
+public Double getMagnitude() {
+	return Magnitude;
+}
+public void setMagnitude(Double magnitude) {
+	Magnitude = magnitude;
+}
+}
