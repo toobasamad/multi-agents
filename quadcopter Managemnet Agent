@@ -1,0 +1,222 @@
+package Agents;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
+
+
+
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
+import jade.core.AID;
+import jade.core.Agent;
+import jade.core.behaviours.Behaviour;
+import jade.core.behaviours.CyclicBehaviour;
+import jade.core.behaviours.OneShotBehaviour;
+import jade.core.behaviours.TickerBehaviour;
+import jade.core.behaviours.WakerBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.lang.acl.ACLMessage;
+
+public class Quadcopter_management_agent extends Agent {
+	Double magnitude;
+	ArrayList<Date> EventDate = new ArrayList<Date>() ;
+	ArrayList<Integer> Quadcopternum = new ArrayList<Integer>();
+	ArrayList<Integer> total_sent_Quadcopter = new ArrayList<Integer>();
+	Connection con = DBConnection.connect();
+	Gson gson;
+	Boolean disaster=false;
+	int total_quadcopters;
+
+@Override
+protected void setup() {
+	// TODO Auto-generated method stub
+	gson  = new GsonBuilder().serializeNulls().create();
+	System.out.println("Agent Name: " + getName());
+	DFAgentDescription dfd = new DFAgentDescription();
+	ServiceDescription sd = new ServiceDescription();
+	sd.setType("Quadcopter_management_agent");
+	sd.setName("Quadcopter_management_agent");
+	sd.setOwnership("NUST");
+	dfd.setName(getAID());
+	dfd.addServices(sd);
+	try {
+		DFService.register(this, dfd);
+	} catch (FIPAException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+	addBehaviour(new Quadcopter_decision());
+
+	
+}
+public Date convert_date(String s){
+	Date date = new Date();
+	SimpleDateFormat sdfInput = new SimpleDateFormat("yyyy-mm-dd");
+	Date startTime = null;
+	 try {
+         startTime = sdfInput.parse(s);
+         
+         
+
+     } catch (ParseException e) {
+         e.printStackTrace();
+     }
+	return startTime;
+}
+
+public double set_quadcopters(ArrayList<Integer>his_quadcopter,ArrayList<Integer>sent_quadcopter,ArrayList<Date>his_Date,double total_quadcopters){
+	double quadcopter_no = 0;
+      if(his_quadcopter.size()==1 && his_Date.size() ==1){
+    	   Date curr_date = new Date();
+    	   double past_ratio = 0, current_ratio,time_change = 0;
+    	   if(curr_date.getYear()- his_Date.get(0).getYear()!= 0){
+    		   time_change =curr_date.getYear()- his_Date.get(0).getYear();
+    		   System.out.println("change in time = "+ time_change );
+    	   }
+    	   else{
+    		   if(curr_date.getMonth()- his_Date.get(0).getMonth()!= 0){
+    			   time_change = curr_date.getMonth()- his_Date.get(0).getMonth()/12;
+    			   System.out.println("change in time = "+ time_change );
+    		   }
+    		   else{
+    			   if(curr_date.getDay()- his_Date.get(0).getDay()!= 0){
+    				   time_change = curr_date.getDay()- his_Date.get(0).getDay()/365;
+    			   }
+    			   
+    		   }
+    	   }
+    	   
+    	  double sent =his_quadcopter.get(0);
+    	  double total = sent_quadcopter.get(0);
+    	   past_ratio = sent/total;
+    	   current_ratio = past_ratio + 0.0113*(1-past_ratio/total_quadcopters)*time_change*past_ratio;
+    	   quadcopter_no =  Math.ceil(current_ratio*total_quadcopters);	  
+    	   System.out.print("Suggested Quadcopter number = "+ quadcopter_no);
+    	  
+      }
+      else{
+    	  double count_quadcopter = 0;
+    	  for(int i= 0; i<his_Date.size();i++){
+    	  Date curr_date = new Date();
+   	   double past_ratio = 0, current_ratio,time_change = 0;
+   	   if(curr_date.getYear()- his_Date.get(i).getYear()!= 0){
+   		   time_change =curr_date.getYear()- his_Date.get(i).getYear();
+   		  
+   	   }
+   	   else{
+   		   if(curr_date.getMonth()- his_Date.get(i).getMonth()!= 0){
+   			   time_change = curr_date.getMonth()- his_Date.get(0).getMonth()/12;
+   			   
+   		   }
+   		   else{
+   			   if(curr_date.getDay()- his_Date.get(i).getDay()!= 0){
+   				   time_change = curr_date.getDay()- his_Date.get(0).getDay()/365;
+   			   }
+   			   
+   		   }
+   	   }
+   	   
+   	  double sent =his_quadcopter.get(i);
+   	  double total = sent_quadcopter.get(i);
+   	   past_ratio = sent/total;
+   	   current_ratio = past_ratio + 0.0113*(1-past_ratio/total_quadcopters)*time_change*past_ratio;
+   	   count_quadcopter +=  Math.floor(current_ratio*total_quadcopters);	  
+   	  
+      }
+    	  double total_entries_db = his_Date.size();
+    	  quadcopter_no = count_quadcopter/total_entries_db;
+    	  System.out.print("Suggested Quadcopter number = "+ quadcopter_no);
+     }
+      return quadcopter_no;
+      
+}
+
+
+private class Quadcopter_decision extends CyclicBehaviour{
+
+	@Override
+	public void action() {
+		// TODO Auto-generated method stub
+		ACLMessage reply =receive();
+		 if(reply!=null){
+			 if(reply.getSender().getName().equals("Monitoring_agent@foo-platform"))
+			 {
+			if(reply.getPerformative() == ACLMessage.INFORM){
+				String msg_from_EMA = reply.getContent();
+				String delims = "[,]";
+				String[] msg_tokens = msg_from_EMA.split(delims);
+				System.out.println("Magnitude = "+msg_tokens[0]);
+				System.out.println("total Quadcoptes = "+msg_tokens[1]);
+				total_quadcopters = Integer.parseInt(msg_tokens[1]);
+				magnitude = Double.parseDouble(msg_tokens[0]);
+				System.out.println("i got message = "+magnitude);
+				disaster = true;
+				ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
+				msg.setContent(""+magnitude);
+				msg.addReceiver(new AID("Database_agent",AID.ISLOCALNAME));
+				send(msg);
+						
+				
+			}
+			else{
+				block();
+			}
+			 }
+			 
+			 else{	 if(reply.getSender().getName().equals("Database_agent@foo-platform"))
+				 if(reply.getPerformative() == ACLMessage.INFORM){
+				 {
+					 
+					  ArrayList<History> his_data = (ArrayList<History>) gson.fromJson(reply.getContent().toString(),
+			                    new TypeToken<ArrayList<History>>() {
+				                    }.getType());
+						for (int i = 0; i<his_data.size();i++ ){
+							
+							 int number = his_data.get(i).getQuadcopter_no();
+							 int sent_number = his_data.get(i).getTotal_quadcopter_sent();
+							 
+						     String dateInString = his_data.get(i).getDate();
+						     Date d =   convert_date(dateInString);
+							 Quadcopternum.add(number);
+							 total_sent_Quadcopter.add(sent_number);
+							 EventDate.add(d);
+							 
+						}
+						double number = set_quadcopters(Quadcopternum,total_sent_Quadcopter, EventDate,total_quadcopters);
+				    	if(DBConnection.is_connected){
+				    		String query = "INSERT INTO quadcopter_number (Quadcopter_no)VALUES ("+ number+")";
+				    		try {
+								Statement st = con.createStatement();
+								st.executeUpdate(query);
+							} catch (SQLException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							
+				    	}
+				 }
+           }
+		 }
+	 }
+}
+
+}
+	
+	
+	
+}
